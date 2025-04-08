@@ -62,13 +62,36 @@ markdownToHtml("**Custom render**");
 
 ## 🛠️ API
 
-### `markdownToHtml(markdown: string): string`
+The following methods are available globally via the `window` object.
 
-Converts raw Markdown text into sanitized HTML.
+### `window.markdownToHtml(markdown: string): string`
 
-### `document.renderAllMarkdownTags(root?: HTMLElement): void`
+Converts a raw Markdown string into sanitized HTML.  
+Returns a string of HTML without inserting it into the DOM.
 
-Searches for all Markdown elements (`<markdown>`, `<md>`, etc.) in `root` and replaces them with rendered HTML.
+> Useful for rendering Markdown on-the-fly, for example:
+>
+> ```js
+> const html = window.markdownToHtml("**bold** _italic_");
+> someElement.innerHTML = html;
+> ```
+
+---
+
+### `window.document.renderAllMarkdownTags(root?: HTMLElement): void`
+
+Searches for all supported Markdown elements (`<markdown>`, `<md>`, `<text type="markdown">`, etc.) inside the given `root` (or `document` by default), converts their contents to HTML, and replaces the original elements with `<div>`s containing rendered content.
+
+> This method is **automatically executed** on page load (`DOMContentLoaded`),  
+> but **must be called manually** if you add Markdown elements dynamically:
+>
+> ```js
+> const newEl = document.createElement("markdown");
+> newEl.textContent = "# Hello from JS";
+> document.body.appendChild(newEl);
+>
+> document.renderAllMarkdownTags(); // Must be called!
+> ```
 
 ---
 
