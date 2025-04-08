@@ -36,11 +36,12 @@ Designed to be embedded in web pages and applications where native Markdown rend
 - [x] Works in the browser
 - [ ] With manual control
 
-> Quote blocks supported!
+> Quote blocks and tables supported!
 
-```js
-console.log("This is a code block.");
-```
+| Column 1 | Column 2 |
+| -------- |:--------:|
+| Hello    | world!   |
+
 </markdown>
 ```
 or using `<text type="markdown">Markdown content here</text>`
