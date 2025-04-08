@@ -5,8 +5,6 @@
 **LiteMark.js** is a lightweight Markdown-to-HTML converter for the browser with manual rendering support and custom tag detection.  
 Designed to be embedded in web pages and applications where native Markdown rendering is required — with full control over when and how it happens.
 
----
-
 ## ✨ Features
 
 - 📄 Parses standard Markdown syntax
@@ -20,8 +18,6 @@ Designed to be embedded in web pages and applications where native Markdown rend
 - 📊 Markdown tables with alignment
 - 💬 Multi-level blockquotes
 - 💡 Clean, dependency-free, framework-agnostic
-
----
 
 ## 🚀 Usage
 
@@ -60,8 +56,6 @@ document.renderAllMarkdownTags();
 markdownToHtml("**Custom render**");
 ```
 
----
-
 ## 🛠️ API
 
 The following methods are available globally via the `window` object.
@@ -94,8 +88,6 @@ Searches for all supported Markdown elements (`<markdown>`, `<md>`, `<text type=
 >
 > document.renderAllMarkdownTags(); // Must be called!
 > ```
-
----
 
 ## 📦 Installation
 
