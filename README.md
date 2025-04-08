@@ -21,7 +21,7 @@ Designed to be embedded in web pages and applications where native Markdown rend
 
 ## 🚀 Usage
 
-### 1. Include the script in <head>
+### 1. Include the script in `<head>`
 
 ```html
 <script src="LiteMark.js"></script>
