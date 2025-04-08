@@ -168,30 +168,47 @@
         });
 
         // Render blockquotes
-        md = md.replace(/^((?:> ?.*(?:\n|$))+)/gm, block => {
-            const lines = block.trim().split('\n');
-            let html = '',
-                openTags = 0;
+        md = md.replace(/^((?:&gt; ?.*(?:\n|$))+)/gm, raw => {
+            const lines = raw.trim().split('\n');
 
-            lines.forEach(line => {
-                const match = line.match(/^(>+)\s?(.*)$/);
-                if (!match) return;
-                const level = match[1].length;
-                const content = match[2];
+            const parsed = lines.map(line => {
+                const match = line.match(/^((&gt;)+)\s?(.*)$/);
+                if (!match) return null;
 
-                while (openTags > level) {
-                    html += '</blockquote>';
-                    openTags--;
+                const
+                    level = match[1].split('&gt;').length - 1,
+                    content = match[3];
+
+                return { level, content };
+            }).filter(Boolean);
+
+            const renderQuote = (items, level = 1) => {
+                let buffer = [],
+                    result = '';
+
+                for (let i = 0; i < items.length; i++) {
+                    const { level: l, content } = items[i];
+
+                    if (l === level) {
+                        buffer.push(content);
+                    } else if (l > level) {
+                        // соберём вложенные
+                        const nested = [];
+                        while (i < items.length && items[i].level >= l) {
+                            nested.push(items[i++]);
+                        }
+                        i--;
+                        result += renderQuote(nested, l);
+                    } else {
+                        break;
+                    }
                 }
-                while (openTags < level) {
-                    html += '<blockquote>';
-                    openTags++;
-                }
-                html += content + '\n';
-            });
 
-            while (openTags-- > 0) html += '</blockquote>';
-            return html;
+                const inner = markdownToHtml(buffer.join('\n'));
+                return `<blockquote>${inner}${result}</blockquote>`;
+            };
+
+            return renderQuote(parsed);
         });
 
         // Render tables
@@ -224,30 +241,7 @@
             result = [],
             paragraph = [];
 
-        const blockTags = [
-            'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
-            'b', 'base', 'bdi', 'bdo', 'big', 'blockquote', 'body', 'br',
-            'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup',
-            'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog',
-            'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption',
-            'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'head', 'header', 'hr', 'html', 'i', 'iframe', 'img', 'input',
-            'ins', 'kbd', 'label', 'legend', 'li', 'link', 'main', 'map',
-            'mark', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol',
-            'optgroup', 'option', 'output', 'p', 'param', 'picture', 'pre',
-            'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script',
-            'section', 'select', 'small', 'source', 'span', 'strong', 'style',
-            'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'template',
-            'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track',
-            'u', 'ul', 'var', 'video', 'wbr'
-        ];
-
-        const isBlock = line => {
-            const tagMatch = line.match(/^<\/?([^\s/>]+)/i);
-            if (!tagMatch) return false;
-            const tagName = tagMatch[1].toLowerCase();
-            return blockTags.includes(tagName);
-        };
+        const isHtmlTagLike = line => /^<\/?[a-zA-Z][\w\-]*(\s[^>]*)?>/.test(line.trim());
 
         const flush = () => {
             if (paragraph.length) result.push('<p>' + paragraph.join(' ') + '</p>');
@@ -256,12 +250,20 @@
 
         for (let line of lines) {
             const trimmed = line.trim();
-            if (!trimmed) { flush(); continue; }
-            if (trimmed.startsWith('<!--codeblock_') || isBlock(trimmed)) {
+            if (!trimmed) {
+                flush();
+                continue;
+            }
+
+            if (
+                trimmed.startsWith('<!--codeblock_') ||
+                isHtmlTagLike(trimmed)
+            ) {
                 flush();
                 result.push(trimmed);
                 continue;
             }
+
             paragraph.push(trimmed);
         }
         flush();
@@ -281,7 +283,7 @@
     document.renderAllMarkdownTags = function(root = document) {
         const elements = MARKDOWN_SELECTORS.flatMap(sel => [...root.querySelectorAll(sel)]);
         elements.forEach(el => {
-            const html = markdownToHtml(el.textContent);
+            const html = markdownToHtml(el.innerHTML);
             const div = document.createElement('div');
             for (const attr of el.attributes) div.setAttribute(attr.name, attr.value);
             div.innerHTML = html;
