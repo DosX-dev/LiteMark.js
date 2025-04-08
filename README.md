@@ -1,4 +1,6 @@
-# 🧩 LiteMark.js
+<img src="pics/title.png" style="align: center;">
+
+---
 
 **LiteMark.js** is a lightweight Markdown-to-HTML converter for the browser with manual rendering support and custom tag detection.  
 Designed to be embedded in web pages and applications where native Markdown rendering is required — with full control over when and how it happens.
