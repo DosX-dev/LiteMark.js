@@ -36,12 +36,16 @@ Designed to be embedded in web pages and applications where native Markdown rend
 - [x] Works in the browser
 - [ ] With manual control
 
+<<<<<<< Updated upstream
 > Quote blocks and tables supported!
 
 | Column 1 | Column 2 |
 | -------- |:--------:|
 | Hello    | world!   |
 
+=======
+> Quote blocks supported!
+>>>>>>> Stashed changes
 </markdown>
 ```
 or using `<text type="markdown">Markdown content here</text>`

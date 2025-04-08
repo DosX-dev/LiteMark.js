@@ -98,10 +98,6 @@
             let html = '';
             const stack = [];
 
-            function getIndentLevel(line) {
-                return line.match(/^ */)[0].length;
-            }
-
             lines.forEach(line => {
                 const match = line.match(/^( *)([-+*]|\d+)\. (.+)$/) || line.match(/^( *)([-+*]) (.+)$/);
                 if (!match) return;
@@ -147,15 +143,16 @@
             [/^# (.*)$/gm, '<h1>$1</h1>'],
             [/^(-{3,}|\*{3,}|_{3,})$/gm, '<hr>'],
             [/~~(.*?)~~/g, '<del>$1</del>'],
-            [/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>'],
-            [/___(.*?)___/g, '<strong><em>$1</em></strong>'],
-            [/\*\*(.*?)\*\*/g, '<strong>$1</strong>'],
-            [/__(.*?)__/g, '<strong>$1</strong>'],
-            [/\*(.*?)\*/g, '<em>$1</em>'],
-            [/_([^_]+)_/g, '<em>$1</em>'],
+            [/(^|\W)\*\*\*(?!\*)(.+?)(?<!\*\*)\*\*\*(?=\W|$)/g, '$1<strong><em>$2</em></strong>'],
+            [/(^|\W)___(?!_)(.+?)(?<!___)___(?=\W|$)/g, '$1<strong><em>$2</em></strong>'],
+            [/(^|\W)\*\*(?!\*)(.+?)(?<!\*\*)\*\*(?=\W|$)/g, '$1<strong>$2</strong>'],
+            [/(^|\W)__(?!_)(.+?)(?<!__)__(?=\W|$)/g, '$1<strong>$2</strong>'],
+            [/(^|\W)\*(?!\*)(.+?)(?<!\*)\*(?=\W|$)/g, '$1<em>$2</em>'],
+            [/(^|\W)_(?!_)(.+?)(?<!_)_(?=\W|$)/g, '$1<em>$2</em>'],
             [/`([^`]+?)`/g, '<code>$1</code>'],
-            [/<((https?|ftp):\/\/[^>]+)>/g, '<a href="$1" target="_blank">$1</a>']
+            [/<((https?|ftp):\/\/[^>\s]+)>/g, '<a href="$1" target="_blank">$1</a>']
         ];
+
         for (const [regex, replacement] of patterns) md = md.replace(regex, replacement);
 
         // Render images
@@ -226,9 +223,32 @@
         const lines = md.split('\n'),
             result = [],
             paragraph = [];
-        const blockTags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'blockquote', 'ul', 'ol', 'table', 'thead', 'tbody', 'tr', 'td'];
 
-        const isBlock = line => { const tag = line.match(/^<\/?(\w+)/); return tag && blockTags.includes(tag[1]); };
+        const blockTags = [
+            'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
+            'b', 'base', 'bdi', 'bdo', 'big', 'blockquote', 'body', 'br',
+            'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup',
+            'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog',
+            'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption',
+            'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'head', 'header', 'hr', 'html', 'i', 'iframe', 'img', 'input',
+            'ins', 'kbd', 'label', 'legend', 'li', 'link', 'main', 'map',
+            'mark', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol',
+            'optgroup', 'option', 'output', 'p', 'param', 'picture', 'pre',
+            'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script',
+            'section', 'select', 'small', 'source', 'span', 'strong', 'style',
+            'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'template',
+            'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track',
+            'u', 'ul', 'var', 'video', 'wbr'
+        ];
+
+        const isBlock = line => {
+            const tagMatch = line.match(/^<\/?([^\s/>]+)/i);
+            if (!tagMatch) return false;
+            const tagName = tagMatch[1].toLowerCase();
+            return blockTags.includes(tagName);
+        };
+
         const flush = () => {
             if (paragraph.length) result.push('<p>' + paragraph.join(' ') + '</p>');
             paragraph.length = 0;
