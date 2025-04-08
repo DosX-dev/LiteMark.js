@@ -192,7 +192,6 @@
                     if (l === level) {
                         buffer.push(content);
                     } else if (l > level) {
-                        // соберём вложенные
                         const nested = [];
                         while (i < items.length && items[i].level >= l) {
                             nested.push(items[i++]);
