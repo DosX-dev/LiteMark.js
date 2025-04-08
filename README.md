@@ -12,7 +12,7 @@ Designed to be embedded in web pages and applications where native Markdown rend
 - 🧠 Supports `<markdown>`, `<md>` and typed `<text type="markdown">` blocks
 - ✅ Checkbox lists rendering
 - 🔢 Nested lists (ordered and unordered)
-- 🧱 Syntax-highlighted code blocks (` ```lang `)
+- 🧱 Code blocks (` ```lang `)
 - 🖼️ Image and link embedding
 - 🔠 Inline formatting (bold, italic, strikethrough, code)
 - 📊 Markdown tables with alignment
