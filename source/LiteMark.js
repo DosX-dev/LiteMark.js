@@ -10,7 +10,7 @@
  *               - Using non-standard/custom tags to wrap Markdown.
  *
  * Author:       DosX (https://github.com/DosX-dev)
- * Version:      1.1.0
+ * Version:      1.1.2
  * License:      MIT (https://opensource.org/licenses/MIT)
  *
  * Copyright:    © DosX. Distributed under the MIT License.
@@ -60,7 +60,6 @@
                     }[m] || m));
                 }
 
-
                 const codeBlocks = [],
                     inlineCodeBlocks = [],
                     escapePlaceholders = [];
@@ -100,8 +99,7 @@
                             let lang = '',
                                 codeStart = i + 3;
 
-                            // Find language name (if any) right after ```
-
+                            // Find language name (if any) right after ```.
                             while (codeStart < n && /[^\s\n]/.test(src[codeStart])) {
                                 if (src[codeStart] === '\r' || src[codeStart] === '\n') break;
                                 lang += src[codeStart++];
@@ -229,7 +227,8 @@
                             type = /^\d+$/.test(marker) ? 'ol' : 'ul',
                             isOrdered = type === 'ol';
 
-                        while (stack.length && stack[stack.length - 1].indent >= indent) {
+                        // ИСПРАВЛЕННЫЙ УЧАСТОК: вместо (>= indent) делаем (> indent)
+                        while (stack.length && stack[stack.length - 1].indent > indent) {
                             html += `</li></${stack.pop().type}>`;
                         }
 
@@ -240,11 +239,19 @@
                             html += '</li><li>';
                         }
 
-                        html += isOrdered ? `<span style="display:none" data-md-index="${marker}"></span>${content}` : content;
+                        html += isOrdered ?
+                            `<span style="display:none" data-md-index="${marker}"></span>${content}` :
+                            content;
                     });
 
-                    while (stack.length) html += `</li></${stack.pop().type}>`;
-                    return html.replace(/<li><span style="display:none" data-md-index="(\d+)"><\/span>/g, '<li value="$1">');
+                    while (stack.length) {
+                        html += `</li></${stack.pop().type}>`;
+                    }
+
+                    return html.replace(
+                        /<li><span style="display:none" data-md-index="(\d+)"><\/span>/g,
+                        '<li value="$1">'
+                    );
                 });
 
                 // Inline markdown patterns
@@ -272,104 +279,104 @@
                 // Images
                 md = md.replace(/!\[([^\]]*)\]\((\S+?)(?: +"([^"]+)")?\)/g, (_, alt, src, title) => {
                             return `<img alt="${alt}" src="${src}"${title ? ` title="${title}"` : ''} style="max-width: 100%;">`;
-    });
-
-    // Links
-    md = md.replace(/\[([^\]]+)\]\((\S+?)(?: +"([^"]+)")?\)/g, (_, text, href, title) => {
-        return `<a href="${href}"${title ? ` title="${title}"` : ''} target="_blank">${text}</a>`;
-    });
-
-    // Blockquotes
-    md = md.replace(/^((&gt; ?.*(?:\n|$))+)/gm, raw => {
-        const lines = raw.trim().split('\n').map(line => {
-            const match = line.match(/^((&gt;)+)\s?(.*)$/);
-            if (!match) return null;
-            return { level: match[1].split('&gt;').length - 1, content: match[3] };
-        }).filter(Boolean);
-
-        function renderQuote(items, level) {
-            let result = [];
-            for (let i = 0; i < items.length; i++) {
-                const { level: l, content } = items[i];
-                if (l === level) {
-                    result.push(content === '' ? '<br>' : markdownToHtml(content));
-                } else if (l > level) {
-                    let nested = [];
-                    while (i < items.length && items[i].level >= l) nested.push(items[i++]);
-                    i--;
-                    result.push(renderQuote(nested, l));
-                }
-            }
-            return `<blockquote>${result.join('\n')}</blockquote>`;
-        }
-        return renderQuote(lines, 1);
-    });
-
-    // Tables
-    md = md.replace(/((?:^\|.*\|\n?)+)/gm, block => {
-        const lines = block.trim().split('\n');
-        if (lines.length < 2 || !/^\|(?:[\s\-:]+\|)+$/.test(lines[1])) return block;
-        const alignments = lines[1].trim().slice(1, -1).split('|').map(cell => {
-            const t = cell.trim();
-
-            if (t.charAt(0) === ':' && t.charAt(t.length - 1) === ':') return 'center';
-            if (t.charAt(0) === ':') return 'left';
-            if (t.charAt(t.length - 1) === ':') return 'right';
-
-            return 'left';
         });
-        function renderRow(row, tag) {
-            const cells = row.trim().slice(1, -1).split('|').map(c => c.trim());
-            return '<tr>' + cells.map((c, i) => `<${tag} style="text-align:${alignments[i] || 'left'};">${c}</${tag}>`).join('') + '</tr>';
+
+        // Links
+        md = md.replace(/\[([^\]]+)\]\((\S+?)(?: +"([^"]+)")?\)/g, (_, text, href, title) => {
+            return `<a href="${href}"${title ? ` title="${title}"` : ''} target="_blank">${text}</a>`;
+        });
+
+        // Blockquotes
+        md = md.replace(/^((&gt; ?.*(?:\n|$))+)/gm, raw => {
+            const lines = raw.trim().split('\n').map(line => {
+                const match = line.match(/^((&gt;)+)\s?(.*)$/);
+                if (!match) return null;
+                return { level: match[1].split('&gt;').length - 1, content: match[3] };
+            }).filter(Boolean);
+
+            function renderQuote(items, level) {
+                let result = [];
+                for (let i = 0; i < items.length; i++) {
+                    const { level: l, content } = items[i];
+                    if (l === level) {
+                        result.push(content === '' ? '<br>' : markdownToHtml(content));
+                    } else if (l > level) {
+                        let nested = [];
+                        while (i < items.length && items[i].level >= l) nested.push(items[i++]);
+                        i--;
+                        result.push(renderQuote(nested, l));
+                    }
+                }
+                return `<blockquote>${result.join('\n')}</blockquote>`;
+            }
+            return renderQuote(lines, 1);
+        });
+
+        // Tables
+        md = md.replace(/((?:^\|.*\|\n?)+)/gm, block => {
+            const lines = block.trim().split('\n');
+            if (lines.length < 2 || !/^\|(?:[\s\-:]+\|)+$/.test(lines[1])) return block;
+            const alignments = lines[1].trim().slice(1, -1).split('|').map(cell => {
+                const t = cell.trim();
+
+                if (t.charAt(0) === ':' && t.charAt(t.length - 1) === ':') return 'center';
+                if (t.charAt(0) === ':') return 'left';
+                if (t.charAt(t.length - 1) === ':') return 'right';
+
+                return 'left';
+            });
+            function renderRow(row, tag) {
+                const cells = row.trim().slice(1, -1).split('|').map(c => c.trim());
+                return '<tr>' + cells.map((c, i) => `<${tag} style="text-align:${alignments[i] || 'left'};">${c}</${tag}>`).join('') + '</tr>';
+            }
+            const thead = renderRow(lines[0], 'th');
+            const tbody = lines.slice(2).map(row => renderRow(row, 'td')).join('');
+            return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+        });
+
+        // Paragraphs
+        const splitted = md.split('\n'), result = [], paragraph = [];
+        function isHtmlTagLike(line) {
+            return /^<\/?[a-zA-Z][\w\-]*(\s[^>]*)?>/.test(line.trim());
         }
-        const thead = renderRow(lines[0], 'th');
-        const tbody = lines.slice(2).map(row => renderRow(row, 'td')).join('');
-        return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
-    });
 
-    // Paragraphs
-    const splitted = md.split('\n'), result = [], paragraph = [];
-    function isHtmlTagLike(line) {
-        return /^<\/?[a-zA-Z][\w\-]*(\s[^>]*)?>/.test(line.trim());
-    }
-
-    function flush() {
-        if (paragraph.length) result.push('<p>' + paragraph.join('<br>') + '</p>');
-        paragraph.length = 0;
-    }
-    
-    for (let i = 0; i < splitted.length; i++) {
-        const trimmed = splitted[i].trim();
-        if (!trimmed) {
-            flush(); 
-            continue;
+        function flush() {
+            if (paragraph.length) result.push('<p>' + paragraph.join('<br>') + '</p>');
+            paragraph.length = 0;
         }
-        if (trimmed.indexOf('<!--codeblock_') === 0 || isHtmlTagLike(trimmed)) {
-            flush();
-            result.push(trimmed);
-            continue;
+
+        for (let i = 0; i < splitted.length; i++) {
+            const trimmed = splitted[i].trim();
+            if (!trimmed) {
+                flush();
+                continue;
+            }
+            if (trimmed.indexOf('<!--codeblock_') === 0 || isHtmlTagLike(trimmed)) {
+                flush();
+                result.push(trimmed);
+                continue;
+            }
+            paragraph.push(trimmed);
         }
-        paragraph.push(trimmed);
-    }
-    flush();
+        flush();
 
-    let html = result.join('\n');
+        let html = result.join('\n');
 
-    // Replace code block placeholders
-    for (let i = 0; i < codeBlocks.length; i++) {
-        html = html.replace(codeBlocks[i].placeholder, codeBlocks[i].html);
-    }
-    // Replace inline code placeholders
-    for (let i = 0; i < inlineCodeBlocks.length; i++) {
-        // Inline code always <code>...</code>
-        html = html.replace(inlineCodeBlocks[i].placeholder,
-                            `<code>${escapeHtml(inlineCodeBlocks[i].code)}</code>`);
-    }
-    // Replace escaped placeholders
-    for (let i = 0; i < escapePlaceholders.length; i++) {
-        html = html.replace(escapePlaceholders[i].placeholder, escapePlaceholders[i].ch);
-    }
-    return html.trim();
+        // Replace code block placeholders
+        for (let i = 0; i < codeBlocks.length; i++) {
+            html = html.replace(codeBlocks[i].placeholder, codeBlocks[i].html);
+        }
+        // Replace inline code placeholders
+        for (let i = 0; i < inlineCodeBlocks.length; i++) {
+            // Inline code always <code>...</code>
+            html = html.replace(inlineCodeBlocks[i].placeholder,
+                                `<code>${escapeHtml(inlineCodeBlocks[i].code)}</code>`);
+        }
+        // Replace escaped placeholders
+        for (let i = 0; i < escapePlaceholders.length; i++) {
+            html = html.replace(escapePlaceholders[i].placeholder, escapePlaceholders[i].ch);
+        }
+        return html.trim();
 };
 
 /**
@@ -383,7 +390,7 @@ document.renderAllMarkdownTags = function(root) {
         const html = markdownToHtml(el.innerHTML);
 
         const div = document.createElement('div');
-        
+
         for (let i = 0; i < el.attributes.length; i++) {
             div.setAttribute(el.attributes[i].name, el.attributes[i].value);
         }
