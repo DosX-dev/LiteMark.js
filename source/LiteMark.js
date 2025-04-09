@@ -10,7 +10,7 @@
  *               - Using non-standard/custom tags to wrap Markdown.
  *
  * Author:       DosX (https://github.com/DosX-dev)
- * Version:      1.0.2
+ * Version:      1.0.3
  * License:      MIT (https://opensource.org/licenses/MIT)
  *
  * Copyright:    © DosX. Distributed under the MIT License.
@@ -61,6 +61,16 @@
 
         const codeBlocks = [];
         let codeIndex = 0;
+
+        const inlineCodeBlocks = [];
+        let inlineIndex = 0;
+
+        // Extract inline code blocks before markdown formatting
+        md = md.replace(/`([^`\n]+?)`/g, (_, code) => {
+            const placeholder = `<!--inlinecode_${inlineIndex++}-->`;
+            inlineCodeBlocks.push({ placeholder, code });
+            return placeholder;
+        });
 
         // Extract code blocks first
         md = md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
@@ -149,7 +159,6 @@
             [/(^|\W)__(?!_)(.+?)(?<!__)__(?=\W|$)/g, '$1<strong>$2</strong>'],
             [/(^|\W)\*(?!\*)(.+?)(?<!\*)\*(?=\W|$)/g, '$1<em>$2</em>'],
             [/(^|\W)_(?!_)(.+?)(?<!_)_(?=\W|$)/g, '$1<em>$2</em>'],
-            [/`([^`]+?)`/g, '<code>$1</code>'],
             [/<((https?|ftp):\/\/[^>\s]+)>/g, '<a href="$1" target="_blank">$1</a>']
         ];
 
@@ -269,6 +278,12 @@
             of codeBlocks) {
             html = html.replace(placeholder, codeHtml);
         }
+
+        for (const { placeholder, code }
+            of inlineCodeBlocks) {
+            html = html.replace(placeholder, `<code>${escapeHtml(code)}</code>`);
+        }
+
         return html.trim();
     };
 
