@@ -287,32 +287,42 @@
         });
 
         // Blockquotes
-        md = md.replace(/^((&gt; ?.*(?:\n|$))+)/gm, (raw) => {
+        md = md.replace(/^((&gt; ?.*(?:\n|$))+((?!(&gt;|<|\n|$)).*(?:\n|$))*)+/gm, (raw) => {
             const lines = raw
-                .trim()
+                .trimEnd()
                 .split("\n")
                 .map((line) => {
                     const match = line.match(/^((&gt;)+)\s?(.*)$/);
-                    if (!match) return null;
-                    return { level: match[1].split("&gt;").length - 1, content: match[3] };
-                })
-                .filter(Boolean);
+                    if (match) {
+                        return { level: match[1].split("&gt;").length - 1, content: match[3], isQuote: true };
+                    } else {
+                        return { content: line, isQuote: false };
+                    }
+                });
 
             function renderQuote(items, level) {
                 let result = [];
                 for (let i = 0; i < items.length; i++) {
-                    const { level: l, content } = items[i];
+                    const item = items[i];
+
+                    if (!item.isQuote) {
+                        result.push(markdownToHtml(item.content));
+                        continue;
+                    }
+
+                    const { level: l, content } = item;
                     if (l === level) {
                         result.push(content === "" ? "<br>" : markdownToHtml(content));
                     } else if (l > level) {
                         let nested = [];
-                        while (i < items.length && items[i].level >= l) nested.push(items[i++]);
+                        while (i < items.length && items[i].isQuote && items[i].level >= l) nested.push(items[i++]);
                         i--;
                         result.push(renderQuote(nested, l));
                     }
                 }
                 return `<blockquote>${result.join("\n")}</blockquote>`;
             }
+
             return renderQuote(lines, 1);
         });
 
