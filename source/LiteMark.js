@@ -10,7 +10,7 @@
  *               - Using non-standard/custom tags to wrap Markdown.
  *
  * Author:       DosX (https://github.com/DosX-dev)
- * Version:      1.1.2
+ * Version:      1.1.5
  * License:      MIT (https://opensource.org/licenses/MIT)
  *
  * Copyright:    © DosX. Distributed under the MIT License.
@@ -110,6 +110,7 @@
                     // Now gather code until next ```
                     let codeEnd = codeStart,
                         fenceFound = false;
+
                     while (codeEnd < n) {
                         if (match(codeEnd, "```")) {
                             fenceFound = true;
@@ -135,7 +136,12 @@
                         }
                     });
                     if (!isFinite(minIndent)) minIndent = 0; // защита от пустого
-                    const cleaned = lines.map((l) => l.slice(minIndent)).join("\n");
+                    let cleaned = lines.map((l) => l.slice(minIndent)).join("\n");
+
+                    // Restore escaped characters
+                    for (let j = 0; j < escapePlaceholders.length; j++) {
+                        cleaned = cleaned.replaceAll(escapePlaceholders[j].placeholder, escapePlaceholders[j].ch);
+                    }
 
                     const html = `<pre class="language-${lang.trim() || "plaintext"}"><code>${escapeHtml(cleaned)}</code></pre>`;
                     codeBlocks.push({ placeholder, html });
