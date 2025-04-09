@@ -10,7 +10,7 @@
  *               - Using non-standard/custom tags to wrap Markdown.
  *
  * Author:       DosX (https://github.com/DosX-dev)
- * Version:      1.0.0
+ * Version:      1.0.2
  * License:      MIT (https://opensource.org/licenses/MIT)
  *
  * Copyright:    © DosX. Distributed under the MIT License.
@@ -183,29 +183,26 @@
             }).filter(Boolean);
 
             const renderQuote = (items, level = 1) => {
-                let buffer = [],
-                    result = '';
+                const result = [];
 
                 for (let i = 0; i < items.length; i++) {
                     const { level: l, content } = items[i];
 
                     if (l === level) {
-                        buffer.push(content);
+                        result.push(content === '' ? '<br>' : markdownToHtml(content));
                     } else if (l > level) {
                         const nested = [];
                         while (i < items.length && items[i].level >= l) {
                             nested.push(items[i++]);
                         }
                         i--;
-                        result += renderQuote(nested, l);
-                    } else {
-                        break;
+                        result.push(renderQuote(nested, l));
                     }
                 }
 
-                const inner = markdownToHtml(buffer.join('\n'));
-                return `<blockquote>${inner}${result}</blockquote>`;
+                return `<blockquote>${result.join('\n')}</blockquote>`;
             };
+
 
             return renderQuote(parsed);
         });
