@@ -148,6 +148,7 @@
                             if (spaces < minIndent) minIndent = spaces;
                         }
                     });
+
                     if (!isFinite(minIndent)) minIndent = 0;
                     let cleaned = lines.map((l) => l.slice(minIndent)).join("\n");
 
@@ -313,7 +314,6 @@
 
         // Blockquotes
         md = md.replace(/^((&gt; ?.*(?:\n|$))+((?!(&gt;|<|\n|$)).*(?:\n|$))*)+/gm, (raw) => {
-            console.log("[Blockquote] Matched raw block:\n", raw);
 
             const lines = raw
                 .trimEnd()
@@ -331,21 +331,14 @@
                         const count = (arrowStr.match(/&gt;/g) || []).length;
 
                         const content = match[2].trimStart();
-                        console.log("[Blockquote] Found quote line:", {
-                            rawLine: line,
-                            level: count,
-                            content
-                        });
+
                         return { level: count, content, isQuote: true };
                     } else {
-                        console.log("[Blockquote] Found non-quote line:", line);
                         return { content: line, isQuote: false, level: 0 };
                     }
                 });
 
-            // Прежняя функция renderQuote, но теперь она получит правильные уровни > 1
             function renderQuote(items, level) {
-
                 let result = [];
 
                 for (let i = 0; i < items.length; i++) {
@@ -395,7 +388,6 @@
             const htmlBlock = renderQuote(lines, 1);
             return htmlBlock;
         });
-
 
         // Tables
         md = md.replace(/((?:^\|.*\|\n?)+)/gm, (block) => {
@@ -469,6 +461,7 @@
             }
             paragraph.push(trimmed);
         }
+
         flush();
 
         let html = result.join("\n");
