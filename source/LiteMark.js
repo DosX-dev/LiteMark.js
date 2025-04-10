@@ -10,7 +10,7 @@
  *               - Using non-standard/custom tags to wrap Markdown.
  *
  * Author:       DosX (https://github.com/DosX-dev)
- * Version:      1.1.5
+ * Version:      1.1.7
  * License:      MIT (https://opensource.org/licenses/MIT)
  *
  * Copyright:    © DosX. Distributed under the MIT License.
@@ -25,15 +25,27 @@
  * ------------------------------------------------------------------------
  */
 
-(function () {
+(() => {
+    if (typeof window !== "object" || typeof document !== "object") {
+        throw new Error("LiteMark.js requires a browser environment.");
+    }
+
     /**
      * List of custom selectors considered as markdown sources.
      * Elements matching these will be hidden initially.
      */
-    const MARKDOWN_SELECTORS = ["markdown", "md", 'text[type="markdown"]', 'text[type="text/markdown"]', 'text[type="md"]', 'text[type="text/md"]'];
+    const MARKDOWN_SELECTORS = [
+        'text[type="text/markdown"]',
+        'text[type="text/md"]',
+        'text[type="markdown"]',
+        'text[type="md"]',
+        "markdown",
+        "md"
+    ];
 
     // Hide markdown content before render
     const style = document.createElement("style");
+
     style.textContent = MARKDOWN_SELECTORS.join(",\n    ") + " { display: none !important; }";
     document.head.appendChild(style);
 
@@ -46,18 +58,18 @@
         function escapeHtml(html) {
             return html.replace(
                 /&(?![a-zA-Z]+;)|[<>"']/g,
-                (m) =>
-                    ({
-                        "&": "&amp;",
-                        "<": "&lt;",
-                        ">": "&gt;",
-                        '"': "&quot;",
-                        "'": "&#39;",
-                    })[m] || m
+                (m) => ({
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#39;",
+                })[m] || m
             );
         }
 
-        const codeBlocks = [],
+        const
+            codeBlocks = [],
             inlineCodeBlocks = [],
             escapePlaceholders = [];
 
@@ -120,8 +132,9 @@
                     }
 
                     // codeEnd shows end of ```
-                    const codeText = src.substring(codeStart, fenceFound ? codeEnd : n);
-                    const placeholder = `<!--codeblock_${codeIndex++}-->`;
+                    const
+                        codeText = src.substring(codeStart, fenceFound ? codeEnd : n),
+                        placeholder = `<!--codeblock_${codeIndex++}-->`;
 
                     const lines = codeText.replace(/\r/g, "").split("\n");
 
@@ -135,7 +148,7 @@
                             if (spaces < minIndent) minIndent = spaces;
                         }
                     });
-                    if (!isFinite(minIndent)) minIndent = 0; // защита от пустого
+                    if (!isFinite(minIndent)) minIndent = 0;
                     let cleaned = lines.map((l) => l.slice(minIndent)).join("\n");
 
                     // Restore escaped characters
@@ -163,8 +176,9 @@
                         j++;
                     }
 
-                    const codeText = src.substring(i + 2, j < n ? j : n);
-                    const placeholder = `<!--inlinecode_${inlineIndex++}-->`;
+                    const
+                        codeText = src.substring(i + 2, j < n ? j : n),
+                        placeholder = `<!--inlinecode_${inlineIndex++}-->`;
 
                     inlineCodeBlocks.push({ placeholder, code: codeText });
                     out += placeholder;
@@ -177,8 +191,9 @@
                     let j = i + 1;
                     while (j < n && src[j] !== "`") j++;
 
-                    const codeText = src.substring(i + 1, j < n ? j : n);
-                    const placeholder = `<!--inlinecode_${inlineIndex++}-->`;
+                    const
+                        codeText = src.substring(i + 1, j < n ? j : n),
+                        placeholder = `<!--inlinecode_${inlineIndex++}-->`;
 
                     inlineCodeBlocks.push({ placeholder, code: codeText });
                     i = j < n ? j + 1 : n;
@@ -214,9 +229,11 @@
                     .trim()
                     .split("\n")
                     .map((line) => {
-                        const checked = /\[x\]/i.test(line);
-                        const content = line.replace(/^ *[-+*] \[[ xX]\] /, "");
-                        return `<li style="list-style: none;"><input type="checkbox"${checked ? " checked" : ""} disabled> ${content}</li>`;
+                        const
+                            checked = /\[x\]/i.test(line),
+                            content = line.replace(/^ *[-+*] \[[ xX]\] /, "");
+
+                        return `<li style="list-style: none;"><label><input type="checkbox"${checked ? " checked" : ""} disabled /> ${content}</label></li>`;
                     })
                     .join("") +
                 "</ul>"
@@ -233,7 +250,8 @@
                 const match = line.match(/^( *)([-+*]|\d+)\. (.+)$/) || line.match(/^( *)([-+*]) (.+)$/);
                 if (!match) return;
 
-                const indent = match[1].length,
+                const
+                    indent = match[1].length,
                     marker = match[2],
                     content = match[3],
                     type = /^\d+$/.test(marker) ? "ol" : "ul",
@@ -278,6 +296,7 @@
             [/(^|\W)_(?!_)(.+?)(?<!_)_(?=\W|$)/g, "$1<em>$2</em>"],
             [/<((https?|ftp):\/\/[^>\s]+)>/g, '<a href="$1" target="_blank">$1</a>'],
         ];
+
         for (let [regex, replacement] of patterns) {
             md = md.replace(regex, replacement);
         }
@@ -294,20 +313,41 @@
 
         // Blockquotes
         md = md.replace(/^((&gt; ?.*(?:\n|$))+((?!(&gt;|<|\n|$)).*(?:\n|$))*)+/gm, (raw) => {
+            console.log("[Blockquote] Matched raw block:\n", raw);
+
             const lines = raw
                 .trimEnd()
                 .split("\n")
                 .map((line) => {
-                    const match = line.match(/^((&gt;)+)\s?(.*)$/);
+                    // Новая регулярка: '^((?:&gt;\s?)+)(.*)$'
+                    //  - (?:&gt;\s?)+ означает "одна или несколько последовательностей '&gt;' с пробелом или без"
+                    //  - (.*)$ забираем остаток строки
+                    const match = line.match(/^((?:&gt;\s?)+)(.*)$/);
                     if (match) {
-                        return { level: match[1].split("&gt;").length - 1, content: match[3], isQuote: true };
+                        // Считаем, сколько всего "&gt;" во всем match[1], игнорируя пробелы
+                        // Например, "&gt;&gt;" => 2, "&gt; &gt; &gt;" => 3
+                        // Удаляем все пробелы, а потом ищем "&gt;"
+                        const arrowStr = match[1].replace(/\s+/g, "");
+                        const count = (arrowStr.match(/&gt;/g) || []).length;
+
+                        const content = match[2].trimStart();
+                        console.log("[Blockquote] Found quote line:", {
+                            rawLine: line,
+                            level: count,
+                            content
+                        });
+                        return { level: count, content, isQuote: true };
                     } else {
-                        return { content: line, isQuote: false };
+                        console.log("[Blockquote] Found non-quote line:", line);
+                        return { content: line, isQuote: false, level: 0 };
                     }
                 });
 
+            // Прежняя функция renderQuote, но теперь она получит правильные уровни > 1
             function renderQuote(items, level) {
+
                 let result = [];
+
                 for (let i = 0; i < items.length; i++) {
                     const item = items[i];
 
@@ -317,20 +357,45 @@
                     }
 
                     const { level: l, content } = item;
+
+                    // Та же логика: если l === level => одна цитата,
+                    // если l > level => вложенная цитата
                     if (l === level) {
                         result.push(content === "" ? "<br>" : markdownToHtml(content));
-                    } else if (l > level) {
+                    }
+                    else if (l > level) {
                         let nested = [];
-                        while (i < items.length && items[i].isQuote && items[i].level >= l) nested.push(items[i++]);
-                        i--;
-                        result.push(renderQuote(nested, l));
+                        nested.push(item);
+
+                        let j = i + 1;
+                        for (; j < items.length; j++) {
+                            if (!items[j].isQuote || items[j].level < l) {
+                                break;
+                            }
+                            nested.push(items[j]);
+                        }
+                        i = j - 1;
+                        let nestedHtml = renderQuote(nested, l);
+
+                        let stripped = nestedHtml.replace(/\s/g, "");
+                        if (stripped === "<blockquote></blockquote>" ||
+                            stripped === "<blockquote><br></blockquote>"
+                        ) {
+                            result.push("<br>");
+                        } else {
+                            result.push(nestedHtml);
+                        }
                     }
                 }
-                return `<blockquote>${result.join("\n")}</blockquote>`;
+
+                const finalBlock = `<blockquote>${result.join("\n")}</blockquote>`;
+                return finalBlock;
             }
 
-            return renderQuote(lines, 1);
+            const htmlBlock = renderQuote(lines, 1);
+            return htmlBlock;
         });
+
 
         // Tables
         md = md.replace(/((?:^\|.*\|\n?)+)/gm, (block) => {
@@ -356,14 +421,21 @@
                     .slice(1, -1)
                     .split("|")
                     .map((c) => c.trim());
-                return "<tr>" + cells.map((c, i) => `<${tag} style="text-align:${alignments[i] || "left"};">${c}</${tag}>`).join("") + "</tr>";
+                return (
+                    "<tr>" +
+                    cells
+                        .map((c, i) => `<${tag} style="text-align:${alignments[i] || "left"};">${c}</${tag}>`)
+                        .join("") +
+                    "</tr>"
+                );
             }
 
-            const thead = renderRow(lines[0], "th");
-            const tbody = lines
-                .slice(2)
-                .map((row) => renderRow(row, "td"))
-                .join("");
+            const
+                thead = renderRow(lines[0], "th"),
+                tbody = lines
+                    .slice(2)
+                    .map((row) => renderRow(row, "td"))
+                    .join("");
 
             return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
         });
@@ -372,10 +444,13 @@
         const splitted = md.split("\n"),
             result = [],
             paragraph = [];
+
+        // Helper function to check if a line looks like an HTML tag
         function isHtmlTagLike(line) {
             return /^<\/?[a-zA-Z][\w\-]*(\s[^>]*)?>/.test(line.trim());
         }
 
+        // Helper function to flush the current paragraph
         function flush() {
             if (paragraph.length) result.push("<p>" + paragraph.join("<br>") + "</p>");
             paragraph.length = 0;
@@ -402,6 +477,7 @@
         for (let i = 0; i < codeBlocks.length; i++) {
             html = html.replace(codeBlocks[i].placeholder, codeBlocks[i].html);
         }
+
         // Replace inline code placeholders
         for (let i = 0; i < inlineCodeBlocks.length; i++) {
             // Inline code always <code>...</code>
@@ -413,6 +489,12 @@
             html = html.replace(escapePlaceholders[i].placeholder, escapePlaceholders[i].ch);
         }
 
+        // Anti-XSS for content in <script> tags for dynamic HTML injection
+        html = html.replace(
+            /(['"`])(?:\\\1|.)*?\1|<script[\s\S]*?<\/script>/gi,
+            (match, quote) => quote ? match : ''
+        ).trim();
+
         return html.trim();
     };
 
@@ -422,7 +504,9 @@
      */
     document.renderAllMarkdownTags = function (root) {
         if (!root) root = document;
+
         const elements = MARKDOWN_SELECTORS.flatMap((sel) => [].slice.call(root.querySelectorAll(sel)));
+
         elements.forEach((el) => {
             const html = markdownToHtml(el.innerHTML);
 
@@ -438,7 +522,7 @@
     };
 
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", () => {
             document.renderAllMarkdownTags();
         });
     } else {
