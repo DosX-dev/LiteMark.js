@@ -26,6 +26,8 @@
  */
 
 (() => {
+
+    // Check if running in a browser environment
     if (typeof window !== "object" || typeof document !== "object") {
         throw new Error("LiteMark.js requires a browser environment.");
     }
@@ -481,12 +483,6 @@
         for (let i = 0; i < escapePlaceholders.length; i++) {
             html = html.replace(escapePlaceholders[i].placeholder, escapePlaceholders[i].ch);
         }
-
-        // Anti-XSS for content in <script> tags for dynamic HTML injection
-        html = html.replace(
-            /(['"`])(?:\\\1|.)*?\1|<script[\s\S]*?<\/script>/gi,
-            (match, quote) => quote ? match : ''
-        ).trim();
 
         return html.trim();
     };
