@@ -1,95 +1,96 @@
-<img src="pics/title.png" style="align: center;">
+<p align="center"><img src="pics/title.png" alt="LiteMark.js"></p>
 
----
+**LiteMark.js** renders Markdown directly in the browser. One JavaScript file, no dependencies, no configuration or build step. Write Markdown inside HTML tags, or convert a string yourself.
 
-**LiteMark.js** is a lightweight Markdown-to-HTML converter for the browser with manual rendering support and custom tag detection.  
-Designed to be embedded in web pages and applications where native Markdown rendering is required — with full control over when and how it happens.
+## Quick start
 
-## ✨ Features
-
-- 📄 Parses standard Markdown syntax
-- 🔧 Manual rendering with `markdownToHtml(...)`
-- 🧠 Supports `<markdown>`, `<md>` and typed `<text type="markdown">` blocks
-- ✅ Checkbox lists rendering
-- 🔢 Nested lists (ordered and unordered)
-- 🧱 Code blocks (` ```lang `)
-- 🖼️ Image and link embedding
-- 🔠 Inline formatting (bold, italic, strikethrough, code)
-- 📊 Markdown tables with alignment
-- 💬 Multi-level blockquotes
-- 💡 Clean, dependency-free, framework-agnostic
-
-## 🚀 Usage
-
-### 1. Include the script in `<head>`
+Download [source/LiteMark.js](source/LiteMark.js), place it beside your page, and include it:
 
 ```html
-<script src="LiteMark.js"></script>
-```
+<script src="LiteMark.js" defer></script>
 
-### 2. Write Markdown inside custom tags
+<markdown class="article">
+# Hello, Markdown!
 
-```html
-<markdown>
-# Hello Markdown!
+**Bold**, *italic*, ~~strikethrough~~ and `inline code`.
 
-- [x] Works in the browser
-- [ ] With manual control
+> A quote with [a link](https://example.com).
 
-> Quote blocks and tables supported!
+- [x] One file
+- [x] No dependencies
 
-| Column 1 | Column 2 |
-| -------- |:--------:|
-| Hello    | world!   |
+| Feature | Supported |
+| :------ | :-------: |
+| Tables  | Yes       |
 </markdown>
 ```
-or using `<text type="markdown">Markdown content here</text>`
 
-### 3. Let it render
+The script automatically replaces Markdown source tags with rendered `<div>` elements. Attributes such as `id` and `class` are copied to the replacement. Rendering runs when the DOM is ready, or immediately if the page has already loaded.
 
-Rendering happens automatically on `DOMContentLoaded`,  
-but you can also call:
+Supported source tags are `<markdown>`, `<md>`, and `<text>` with `type="markdown"`, `"md"`, `"text/markdown"` or `"text/md"`. Nested source tags are supported too.
+
+**Keep Markdown indentation intentional.** Four leading spaces start a code block; indenting the whole source tag to match your HTML layout changes the Markdown.
+
+## API
+
+### `window.markdownToHtml(markdown)`
+
+Returns sanitized HTML from a Markdown string. It does not insert anything into the page.
 
 ```js
-document.renderAllMarkdownTags();
-// or render specific elements:
-markdownToHtml("**Custom render**");
+const source = "## Hello\n\nRead **this**.";
+document.querySelector("#preview").innerHTML = window.markdownToHtml(source);
 ```
 
-## 🛠️ API
+### `document.renderAllMarkdownTags(root = document)`
 
-The following methods are available globally via the `window` object.
+Renders source tags inside `root`, including `root` itself when it is a source tag. Call it after adding Markdown elements dynamically:
 
-### `window.markdownToHtml(markdown: string): string`
+```js
+const block = document.createElement("md");
+block.textContent = "## Added later\n\n- First\n- Second";
+document.body.appendChild(block);
+document.renderAllMarkdownTags(block);
+```
 
-Converts a raw Markdown string into sanitized HTML.  
-Returns a string of HTML without inserting it into the DOM.
+Calling it again leaves already rendered content alone. To render a new Markdown string into an existing preview, use `markdownToHtml`.
 
-> Useful for rendering Markdown on-the-fly, for example:
->
-> ```js
-> const html = window.markdownToHtml("**bold** _italic_");
-> someElement.innerHTML = html;
-> ```
+## Supported Markdown
 
----
+The parser is an original implementation of CommonMark 0.31.2 with GitHub Flavored Markdown extensions.
 
-### `window.document.renderAllMarkdownTags(root?: HTMLElement): void`
+| Syntax | Support |
+| --- | --- |
+| Blocks | Both heading styles, paragraphs, thematic breaks, nested quotes |
+| Lists | Ordered and unordered, mixed nesting, empty items, multiple paragraphs, task checkboxes |
+| Code | Indented and fenced blocks, language classes, arbitrary-length inline backtick spans |
+| Formatting | Emphasis, strong emphasis, strikethrough, escapes, HTML entities |
+| Links and images | Inline links, titles, nested parentheses, full/collapsed/shortcut references, definitions after use |
+| Autolinks | Angle-bracket links and GitHub-style bare URLs and email addresses |
+| Tables | Alignment, optional edge pipes, escaped pipes, formatted cells, images, uneven rows |
+| HTML | Safe elements and attributes, with output sanitization |
 
-Searches for all supported Markdown elements (`<markdown>`, `<md>`, `<text type="markdown">`, etc.) inside the given `root` (or `document` by default), converts their contents to HTML, and replaces the original elements with `<div>`s containing rendered content.
+Tables also preserve unescaped pipes inside matched inline-code spans for compatibility with earlier LiteMark versions. Escape those pipes when sharing the document with other GFM renderers.
 
-> This method is **automatically executed** on page load (`DOMContentLoaded`),  
-> but **must be called manually** if you add Markdown elements dynamically:
->
-> ```js
-> const newEl = document.createElement("markdown");
-> newEl.textContent = "# Hello from JS";
-> document.body.appendChild(newEl);
->
-> document.renderAllMarkdownTags(); // Must be called!
-> ```
+Styling and syntax highlighting are up to your page. Fenced code with a language gets a `language-*` class. Math, Mermaid, footnotes and repository-specific user/issue links are outside the supported syntax.
 
-## 📦 Installation
+## HTML and source text
 
-Standalone, plug-n-play. No dependencies.  
-If needed, you can bundle it using your own toolchain (Webpack, Rollup, etc.).
+Safe embedded HTML is retained. Executable elements, event handlers, dangerous URLs and unsafe styles are filtered. Code is escaped and stays literal. Task checkboxes are disabled, and links that open new windows receive safe `rel` attributes.
+
+Use `textContent` when creating source tags from JavaScript. In an HTML file, escape literal `<` and `&` as you would in ordinary HTML text. The browser decodes source-tag text once; `markdownToHtml` accepts Markdown directly and does not decode it as an HTML document first.
+
+## Changes from the earlier parser
+
+- Ordinary line endings are soft breaks. Two trailing spaces or a backslash create a hard break; blank lines separate paragraphs.
+- Ordered lists start at their first number and continue sequentially, even if later source markers use different numbers.
+- Code preserves whitespace, tabs, escapes and entities. Source-tag indentation has the same meaning as indentation in the string API.
+- A literal `>` starts a quote. In the string API, `&gt;` represents text rather than a quote marker; inside an HTML source tag, the browser has already decoded it.
+
+## Development
+
+Tests, specification fixtures and browser tooling live in [tests/](tests/README.md). They cover parsing, sanitization, source-tag integration, malformed input and large documents in a real browser. Test dependencies are used only for development and are not part of `LiteMark.js`.
+
+## License
+
+[MIT](LICENSE) — DosX.

@@ -1,0 +1,10 @@
+{
+    "name": "litemark-browser-tests",
+    "private": true,
+    "scripts": {
+        "test": "node conformance.js && node browser.js && node audit.js"
+    },
+    "devDependencies": {
+        "playwright": "^1.64.0"
+    }
+}
